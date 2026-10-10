@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin · Tweetalig Exámenes</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; color: #2D3E50; }
+  header {
+    background: #2D3E50;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  header img { height: 70px; }
+  header div { color: #fff; }
+  header h1 { font-size: 1.2rem; font-weight: 700; }
+  header p { font-size: 0.82rem; color: #1DB8A8; }
+
+  /* Login */
+  #loginScreen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 80vh;
+  }
+  .login-box {
+    background: #fff; border-radius: 10px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.1);
+    padding: 36px; width: 340px; text-align: center;
+  }
+  .login-box h2 { color: #2D3E50; margin-bottom: 20px; }
+  .login-box input {
+    width: 100%; padding: 10px 14px;
+    border: 1.5px solid #d0d7de; border-radius: 6px;
+    font-size: 0.95rem; margin-bottom: 12px;
+  }
+  .login-box button {
+    width: 100%; padding: 11px;
+    background: #2D3E50; color: #fff;
+    border: none; border-radius: 6px;
+    font-size: 1rem; font-weight: 700; cursor: pointer;
+  }
+  .login-box button:hover { background: #1DB8A8; }
+  .login-error { color: #c0392b; font-size: 0.85rem; margin-top: 8px; display: none; }
+
+  /* Admin panel */
+  #adminPanel { display: none; padding: 24px; max-width: 1100px; margin: 0 auto; }
+
+  /* Session tabs */
+  .session-tabs {
+    display: flex; gap: 4px; margin-bottom: 0;
+    border-bottom: 3px solid #2D3E50;
+    flex-wrap: wrap;
+  }
+  .session-tab {
+    padding: 10px 22px;
+    background: #dce3ea; border: none;
+    border-radius: 8px 8px 0 0;
+    font-size: 0.9rem; font-weight: 700;
+    color: #2D3E50; cursor: pointer;
+    transition: background 0.2s;
+  }
+  .session-tab.active { background: #2D3E50; color: #fff; }
+  .session-content { display: none; }
+  .session-content.active { display: block; }
+
+  /* Stats bar */
+  .stats-bar {
+    display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0;
+  }
+  .stat-box {
+    background: #fff; border-radius: 8px; padding: 12px 20px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.07); flex: 1; min-width: 140px;
+    text-align: center;
+  }
+  .stat-box .num { font-size: 1.8rem; font-weight: 800; color: #1DB8A8; }
+  .stat-box .lbl { font-size: 0.78rem; color: #666; margin-top: 2px; }
+
+  /* CSV button */
+  .btn-csv {
+    display: inline-block; margin: 0 0 16px;
+    padding: 9px 22px; background: #1DB8A8; color: #fff;
+    border: none; border-radius: 6px; font-size: 0.88rem;
+    font-weight: 700; cursor: pointer; text-decoration: none;
+  }
+  .btn-csv:hover { background: #17a094; }
+
+  /* Slot cards */
+  .slot-card {
+    background: #fff; border-radius: 10px;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.07);
+    margin-bottom: 18px; overflow: hidden;
+  }
+  .slot-header {
+    background: #2D3E50; color: #fff;
+    padding: 10px 18px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .slot-header span { font-size: 0.95rem; font-weight: 700; }
+  .slot-badge {
+    font-size: 0.75rem; font-weight: 700;
+    padding: 3px 12px; border-radius: 20px;
+    background: #1DB8A8; color: #fff;
+  }
+  .slot-badge.lleno { background: #e74c3c; }
+  .slot-badge.medio { background: #e08c00; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #f5f8fa; padding: 9px 14px; text-align: left; font-size: 0.8rem; color: #555; }
+  td { padding: 9px 14px; font-size: 0.88rem; border-top: 1px solid #eee; }
+  .btn-del {
+    background: #fde8e8; border: none; color: #c0392b;
+    padding: 4px 12px; border-radius: 5px; cursor: pointer;
+    font-size: 0.8rem; font-weight: 700;
+  }
+  .btn-del:hover { background: #f5c6c6; }
+  .empty-slot { color: #aaa; font-size: 0.88rem; padding: 12px 18px; }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAFeBAEDASIAAhEBAxEB/8QAHQABAAICAwEBAAAAAAAAAAAAAAcIBQYCAwQJAf/EAFAQAAEEAQIDBAQHCwkHAwUAAAABAgMEBQYRBxIhCBMxQSJRYXEUMjaBkaGyFRY3QlJyc3SxwdEXGCMzU1VidZMkNFazw9LhJUOUNYKSosL/xAAbAQEAAwEBAQEAAAAAAAAAAAAAAQMEAgYFB//EADoRAQACAgAFAAYHBgUFAAAAAAABAgMRBAUSITEGEzNBUXEUIjKBocHwQlJhsdHhFRYjJJElNDVykv/aAAwDAQACEQMRAD8AuWAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABr2pNT18bzV66JPa9W/os9/wDDLxnG4ODxTlzW1H68LMWK+W3TSNyz8j2RtV0j2sanirl2QxFzU+FrOVrriSOTyiarvrToaHJNmc9YX+usrv8AFanot/cg=" alt="Logo">
+  <div>
+    <h1>🔐 Panel de Administrador</h1>
+    <p>Tweetalig · Exámenes Orales</p>
+  </div>
+</header>
+
+<!-- Login -->
+<div id="loginScreen">
+  <div class="login-box">
+    <h2>🔒 Acceso Admin</h2>
+    <input type="password" id="passInput" placeholder="Contraseña" onkeydown="if(event.key==='Enter')login()">
+    <button onclick="login()">Entrar</button>
+    <p class="login-error" id="loginErr">Contraseña incorrecta</p>
+  </div>
+</div>
+
+<!-- Admin Panel -->
+<div id="adminPanel">
+  <div class="session-tabs">
+    <button class="session-tab" id="stab_jun" onclick="switchSession('jun')">Sesión 1 · Jun 2026</button>
+    <button class="session-tab active" id="stab_oct" onclick="switchSession('oct')">Sesión 2 · Oct 2026</button>
+  </div>
+
+  <!-- SESIÓN JUNIO -->
+  <div class="session-content" id="sess_jun">
+    <div style="padding:16px 0 8px;"><strong style="color:#2D3E50;">Exámenes Orales · Junio 2026</strong></div>
+    <div class="stats-bar" id="statsJun"></div>
+    <button class="btn-csv" onclick="exportCSV('jun')">⬇ Descargar CSV</button>
+    <div id="slotsJun"></div>
+  </div>
+
+  <!-- SESIÓN OCTUBRE -->
+  <div class="session-content active" id="sess_oct">
+    <div style="padding:16px 0 8px;"><strong style="color:#2D3E50;">Exámenes Orales B1.2 · Octubre 2026</strong></div>
+    <div class="stats-bar" id="statsOct"></div>
+    <button class="btn-csv" onclick="exportCSV('oct')">⬇ Descargar CSV</button>
+    <div id="slotsOct"></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getDatabase, ref, onValue, get, set } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDemoKeyReemplazarConTuClave",
+  authDomain: "encuesta-horarios.firebaseapp.com",
+  databaseURL: "https://encuesta-horarios-default-rtdb.firebaseio.com",
+  projectId: "encuesta-horarios",
+  storageBucket: "encuesta-horarios.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abc123"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ─── CONFIG SESIONES ───────────────────────────────────────────────────────────
+
+const CONFIG = {
+  jun: {
+    ruta: 'horarios',
+    max: null, // diferente por día, ver maxPorDia
+    maxPorDia: { d2:2, d3:2, d4:2, d5:2, d6:2, d9:3 },
+    dias: [
+      { id:'d2', label:'Mar 2 jun', franjas:['2:00 – 4:00 pm','4:00 – 6:00 pm','6:00 – 8:00 pm'] },
+      { id:'d3', label:'Mié 3 jun', franjas:['7:00 – 9:00 am','9:00 – 11:00 am','11:00 am – 1:00 pm','2:00 – 4:00 pm','4:00 – 6:00 pm','6:00 – 8:00 pm'] },
+      { id:'d4', label:'Jue 4 jun', franjas:['7:00 – 9:00 am','9:00 – 11:00 am','11:00 am – 1:00 pm','2:00 – 4:00 pm','4:00 – 6:00 pm','6:00 – 8:00 pm'] },
+      { id:'d5', label:'Vie 5 jun', franjas:['7:00 – 9:00 am','9:00 – 11:00 am','11:00 am – 1:00 pm','2:00 – 4:00 pm','4:00 – 6:00 pm','6:00 – 8:00 pm'] },
+      { id:'d6', label:'Sáb 6 jun', franjas:['8:00 – 10:00 am','10:00 am – 12:00 pm'] },
+      { id:'d9', label:'Mar 9 jun', franjas:['7:00 – 9:00 am','9:00 – 11:00 am','11:00 am – 1:00 pm','2:00 – 4:00 pm','4:00 – 6:00 pm','6:00 – 8:00 pm'] },
+    ]
+  },
+  oct: {
+    ruta: 'horarios-b12-oct2026',
+    max: 3,
+    maxPorDia: null,
+    dias: [
+      { id:'d13', label:'Mar 13 oct', franjas:['5:00 – 7:00 pm'] },
+      { id:'d14', label:'Mié 14 oct', franjas:['3:00 – 5:00 pm'] },
+      { id:'d15', label:'Jue 15 oct', franjas:['2:00 – 4:00 pm','4:00 – 6:00 pm'] },
+      { id:'d16', label:'Vie 16 oct', franjas:['2:00 – 4:00 pm','4:00 – 6:00 pm'] },
+      { id:'d19', label:'Lun 19 oct', franjas:['10:00 am – 12:00 pm','12:00 – 2:00 pm'] },
+    ]
+  }
+};
+
+// ─── LOGIN ─────────────────────────────────────────────────────────────────────
+
+window.login = function() {
+  const pass = document.getElementById('passInput').value;
+  if (pass === 'tweetalig2026') {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminPanel').style.display = 'block';
+    loadSession('jun');
+    loadSession('oct');
+  } else {
+    document.getElementById('loginErr').style.display = 'block';
+  }
+};
+
+// ─── SWITCH SESSIONS ───────────────────────────────────────────────────────────
+
+window.switchSession = function(sess) {
+  document.querySelectorAll('.session-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.session-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('stab_' + sess).classList.add('active');
+  document.getElementById('sess_' + sess).classList.add('active');
+};
+
+// ─── LOAD & RENDER ─────────────────────────────────────────────────────────────
+
+function getMax(cfg, diaId) {
+  if (cfg.maxPorDia) return cfg.maxPorDia[diaId] || 2;
+  return cfg.max || 3;
+}
+
+function slotKey(diaId, fi) { return `${diaId}_f${fi}`; }
+
+function loadSession(sess) {
+  const cfg = CONFIG[sess];
+  onValue(ref(db, cfg.ruta + '/slots'), snap => {
+    const data = snap.val() || {};
+    renderSession(sess, cfg, data);
+  });
+}
+
+function renderSession(sess, cfg, data) {
+  const suffix = sess === 'jun' ? 'Jun' : 'Oct';
+  const statsEl = document.getElementById('stats' + suffix);
+  const slotsEl = document.getElementById('slots' + suffix);
+
+  let totalReg = 0, franOcu = 0, franLlenas = 0;
+
+  cfg.dias.forEach(dia => {
+    dia.franjas.forEach((_, fi) => {
+      const key = slotKey(dia.id, fi);
+      const arr = data[key] || [];
+      const mx = getMax(cfg, dia.id);
+      if (arr.length > 0) { franOcu++; totalReg += arr.length; }
+      if (arr.length >= mx) franLlenas++;
+    });
+  });
+
+  statsEl.innerHTML = `
+    <div class="stat-box"><div class="num">${totalReg}</div><div class="lbl">Registrados</div></div>
+    <div class="stat-box"><div class="num">${franOcu}</div><div class="lbl">Franjas ocupadas</div></div>
+    <div class="stat-box"><div class="num">${franLlenas}</div><div class="lbl">Franjas llenas</div></div>
+  `;
+
+  slotsEl.innerHTML = '';
+  cfg.dias.forEach(dia => {
+    dia.franjas.forEach((franja, fi) => {
+      const key = slotKey(dia.id, fi);
+      const arr = data[key] || [];
+      const mx = getMax(cfg, dia.id);
+      const libre = mx - arr.length;
+
+      let badgeCls = '';
+      let badgeTxt = `${arr.length}/${mx}`;
+      if (arr.length >= mx) { badgeCls = 'lleno'; badgeTxt = 'Lleno'; }
+      else if (libre === 1) { badgeCls = 'medio'; }
+
+      const card = document.createElement('div');
+      card.className = 'slot-card';
+      card.innerHTML = `
+        <div class="slot-header">
+          <span>📅 ${dia.label} · ${franja}</span>
+          <span class="slot-badge ${badgeCls}">${badgeTxt}</span>
+        </div>
+        ${arr.length === 0
+          ? `<p class="empty-slot">— Sin registros —</p>`
+          : `<table>
+              <tr>
+                <th>#</th>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th>ID</th>
+                ${sess === 'jun' ? '<th>Nivel</th>' : ''}
+                <th>Correo</th>
+                <th></th>
+              </tr>
+              ${arr.map((est, i) => `
+                <tr>
+                  <td>${i+1}</td>
+                  <td>${est.nombre || ''}</td>
+                  <td>${est.apellido || ''}</td>
+                  <td>${est.id || ''}</td>
+                  ${sess === 'jun' ? `<td>${est.nivel || ''}</td>` : ''}
+                  <td>${est.correo || ''}</td>
+                  <td><button class="btn-del" onclick="window.eliminar('${sess}','${key}',${i})">✕</button></td>
+                </tr>`).join('')}
+            </table>`
+        }
+      `;
+      slotsEl.appendChild(card);
+    });
+  });
+}
+
+// ─── ELIMINAR ──────────────────────────────────────────────────────────────────
+
+window.eliminar = async function(sess, key, idx) {
+  if (!confirm('¿Eliminar este registro?')) return;
+  const cfg = CONFIG[sess];
+  const slotRef = ref(db, `${cfg.ruta}/slots/${key}`);
+  const snap = await get(slotRef);
+  const arr = snap.val() || [];
+  arr.splice(idx, 1);
+  await set(slotRef, arr.length ? arr : null);
+};
+
+// ─── EXPORT CSV ───────────────────────────────────────────────────────────────
+
+window.exportCSV = async function(sess) {
+  const cfg = CONFIG[sess];
+  const snap = await get(ref(db, cfg.ruta + '/slots'));
+  const data = snap.val() || {};
+  const rows = [['Fecha','Franja','Nombre','Apellido','ID','Correo',(sess==='jun'?'Nivel':'')]];
+
+  cfg.dias.forEach(dia => {
+    dia.franjas.forEach((franja, fi) => {
+      const key = slotKey(dia.id, fi);
+      const arr = data[key] || [];
+      arr.forEach(e => {
+        rows.push([dia.label, franja, e.nombre||'', e.apellido||'', e.id||'', e.correo||'', e.nivel||'B1.2']);
+      });
+    });
+  });
+
+  const csv = rows.map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `examenes_${sess}_2026.csv`;
+  a.click();
+};
+</script>
+</body>
+</html>
